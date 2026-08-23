@@ -21,13 +21,21 @@ if (!defined('APP_VERSION')) define('APP_VERSION', '1.0.0');
 $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443)) ? "https://" : "http://";
 $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
 
+// Detect Vercel environment
+$isVercel = !empty($_SERVER['VERCEL']) || !empty($_SERVER['VERCEL_ENV']) || (strpos($_SERVER['SCRIPT_NAME'] ?? '', '/api/') === 0);
+
 // Script directory relative to document root
 $scriptDir = dirname($_SERVER['SCRIPT_NAME'] ?? '');
 $scriptDir = str_replace('\\', '/', $scriptDir);
-// Jika script dipanggil dari subfolder seperti /actions atau /views, kita cari root project-nya
-$basePath = preg_replace('/(\/(actions|views|config|includes|database).*)$/', '', $scriptDir);
-if ($basePath === '/' || $basePath === '\\') {
+
+if ($isVercel) {
     $basePath = '';
+} else {
+    // Jika script dipanggil dari subfolder seperti /actions atau /views, kita cari root project-nya
+    $basePath = preg_replace('/(\/(actions|views|config|includes|database).*)$/', '', $scriptDir);
+    if ($basePath === '/' || $basePath === '\\') {
+        $basePath = '';
+    }
 }
 
 if (!defined('BASE_URL')) {
@@ -38,9 +46,10 @@ if (!defined('ROOT_PATH')) {
     define('ROOT_PATH', realpath(__DIR__ . '/..'));
 }
 
-// Upload directory
+// Upload directory (Vercel uses /tmp because project filesystem is read-only)
+$uploadDir = $isVercel ? '/tmp/uploads' : ROOT_PATH . '/uploads';
 if (!defined('UPLOAD_PATH')) {
-    define('UPLOAD_PATH', ROOT_PATH . '/uploads');
+    define('UPLOAD_PATH', $uploadDir);
 }
 
 // Ensure upload folders exist

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * FORSAKDA 27 - Konfigurasi Database (PDO Handler)
  * Aman terhadap SQL Injection dengan Prepared Statements
@@ -12,19 +13,22 @@ define('DB_PORT', getenv('DB_PORT') ?: '3306');
 define('DB_NAME', getenv('DB_NAME') ?: 'forsakda27_db');
 define('DB_USER', getenv('DB_USER') ?: 'root');
 define('DB_PASS', getenv('DB_PASS') ?: '');
+define('DB_SSL_CA', getenv('DB_SSL_CA') ?: '');
 
-class Database {
+class Database
+{
     private static ?PDO $instance = null;
 
     /**
      * Dapatkan koneksi PDO Database ke MySQL (Singleton Pattern)
      */
-    public static function getConnection(): PDO {
+    public static function getConnection(): PDO
+    {
         if (self::$instance === null) {
             $dbName = DB_NAME;
             $dbUser = DB_USER;
             $dbPass = DB_PASS;
-            
+
             // Daftar strategi DSN koneksi MySQL (TCP & Unix Socket)
             $dsnCandidates = [
                 "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . $dbName . ";charset=utf8mb4",
@@ -41,6 +45,11 @@ class Database {
                 PDO::ATTR_EMULATE_PREPARES   => false,
                 PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci"
             ];
+
+            if (!empty(DB_SSL_CA)) {
+                $options[PDO::MYSQL_ATTR_SSL_CA] = DB_SSL_CA;
+                $options[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = true;
+            }
 
             $connected = false;
             $lastError = '';
@@ -74,7 +83,7 @@ class Database {
 
                         $targetDsn = $dsnCandidates[$index] ?? "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . $dbName . ";charset=utf8mb4";
                         self::$instance = new PDO($targetDsn, $dbUser, $dbPass, $options);
-                        
+
                         // Otomatis migrate schema dan seed data awal
                         self::initSchema(self::$instance);
                         $connected = true;
@@ -97,7 +106,8 @@ class Database {
     /**
      * Inisialisasi Schema Database jika tabel belum terbentuk
      */
-    public static function initSchema(PDO $pdo): void {
+    public static function initSchema(PDO $pdo): void
+    {
         $schemaFile = ROOT_PATH . '/database/schema.sql';
         $seedFile = ROOT_PATH . '/database/seed.sql';
 
@@ -114,11 +124,13 @@ class Database {
     /**
      * Tampilan ramah pengguna jika MySQL server belum menyala
      */
-    private static function renderDbErrorPage(string $err1): void {
+    private static function renderDbErrorPage(string $err1): void
+    {
         http_response_code(500);
-        ?>
+?>
         <!DOCTYPE html>
         <html lang="id">
+
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -126,6 +138,7 @@ class Database {
             <script src="https://cdn.tailwindcss.com"></script>
             <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
         </head>
+
         <body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center p-4">
             <div class="max-w-xl w-full bg-slate-800 border border-slate-700 rounded-2xl p-8 shadow-2xl">
                 <div class="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-2xl flex items-center justify-center text-3xl mb-6 mx-auto">
@@ -164,7 +177,8 @@ class Database {
                 </div>
             </div>
         </body>
+
         </html>
-        <?php
+<?php
     }
 }
